@@ -32,6 +32,8 @@ class Plan {
 }
 
 class PlanManagerScreen extends StatefulWidget {
+  const PlanManagerScreen({super.key});
+
   @override
   _PlanManagerScreenState createState() => _PlanManagerScreenState();
 }
@@ -138,6 +140,82 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
     );
   }
 
+
+void _showEditPlanDialog(int index, Plan plan) {
+  TextEditingController nameController = TextEditingController(text: plan.name);
+  TextEditingController descriptionController = TextEditingController(text: plan.description);
+  DateTime selectedDate = plan.date;
+  String priority = plan.priority;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text('Edit Plan'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(labelText: 'Plan Name'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: InputDecoration(labelText: 'Description'),
+            ),
+            DropdownButton<String>(
+              value: priority,
+              items: ['Low', 'Medium', 'High']
+                  .map((level) => DropdownMenuItem(
+                        value: level,
+                        child: Text(level),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    priority = value;
+                  });
+                }
+              },
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: selectedDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2101),
+                );
+                if (pickedDate != null) {
+                  setState(() {
+                    selectedDate = pickedDate;
+                  });
+                }
+              },
+              child: Text('Select Date'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _editPlan(index, nameController.text, descriptionController.text, selectedDate, priority);
+              Navigator.pop(context);
+            },
+            child: Text('Save'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -184,10 +262,12 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                               _deletePlan(index);
                             },
                             child: ListTile(
+                              tileColor: plan.isCompleted ? Colors.green[100] : Colors.yellow[100], // Color-coded based on completion
                               title: Text(
                                 plan.name,
                                 style: TextStyle(
                                   decoration: plan.isCompleted ? TextDecoration.lineThrough : null,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                               subtitle: Column(
@@ -197,7 +277,14 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                                   Text('Due: $formattedDate', style: TextStyle(fontSize: 12, color: Colors.redAccent)),
                                 ],
                               ),
-                              onLongPress: () => _editPlan(index, plan.name, plan.description, plan.date, plan.priority),
+                              onLongPress: () => _showEditPlanDialog(index, plan),
+                              trailing: IconButton(
+                                icon: Icon(
+                                  plan.isCompleted ? Icons.check_circle:  Icons.radio_button_unchecked,
+                                  color: plan.isCompleted ? Colors.green : Colors.grey,
+                                ),
+                                onPressed: () => _markCompleted(index), // Toggle completion status
+                              ),
                             ),
                           ),
                         );
